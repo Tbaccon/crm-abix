@@ -77,6 +77,14 @@ select option{background:#1e2028}
 #fb.show{opacity:1}
 .toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 18px;font-family:'DM Mono',monospace;font-size:12px;border-left:3px solid;transform:translateY(8px);opacity:0;transition:all .2s;z-index:1000}
 .toast.show{transform:translateY(0);opacity:1}
+
+.cnpj-info{margin-top:8px;padding:10px 12px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);display:none;gap:8px;flex-wrap:wrap}
+.cnpj-info.show{display:flex}
+.cib{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:3px;border:1px solid var(--border);white-space:nowrap}
+.cib.ok{color:var(--ok);border-color:rgba(71,255,178,.25);background:rgba(71,255,178,.07)}
+.cib.warn{color:var(--warn);border-color:rgba(255,179,71,.25);background:rgba(255,179,71,.07)}
+.cib.err{color:var(--err);border-color:rgba(255,107,107,.25);background:rgba(255,107,107,.07)}
+.cib.neu{color:var(--muted);border-color:var(--border);background:transparent}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 </style>
 </head>
@@ -92,7 +100,7 @@ select option{background:#1e2028}
       <div class="slabel">Cliente</div>
       <div class="g2">
         <div class="fld s2"><label>Nome da Empresa</label><input type="text" id="cliente" placeholder="Ex: LD Celulose S/A"></div>
-        <div class="fld"><label>CNPJ</label><input type="text" id="cnpj" placeholder="00.000.000/0001-00"></div>
+        <div class="fld"><label>CNPJ <span id="cnpj-spin" style="color:var(--muted);font-size:10px"></span></label><input type="text" id="cnpj" placeholder="00.000.000/0001-00" oninput="onCnpjInput(this.value)"></div>
         <div class="fld"><label>Estado</label>
           <select id="estado" onchange="updFilial()">
             <option value="">Selecione...</option>
@@ -107,6 +115,7 @@ select option{background:#1e2028}
           </select>
         </div>
         <div class="fld s2"><label>Filial Responsável</label><div id="filial" class="empty">— selecione o estado —</div></div>
+        <div class="cnpj-info s2" id="cnpj-info"></div>
       </div>
     </div>
     <div class="sec">
@@ -319,6 +328,105 @@ function updFilial(){
   else{el.textContent='⚠ Estado não mapeado';el.className='warn';}
 }
 
+
+// CONSULTA CNPJ — BrasilAPI (gratuita, dados da Receita Federal)
+// async/await: a função espera a resposta da API sem travar o navegador
+let cnpjTimer = null; // guarda o timer para cancelar se o usuário continuar digitando
+
+function onCnpjInput(raw) {
+  // Remove tudo que não é número: "12.345.678/0001-99" → "12345678000199"
+  const digits = raw.replace(/\D/g, '');
+
+  // Só busca quando tiver os 14 dígitos completos
+  // Evita chamar a API a cada tecla pressionada
+  if (digits.length !== 14) return;
+
+  // Debounce: espera 600ms sem digitar antes de chamar a API
+  // Se o usuário corrigir um dígito, cancela a busca anterior
+  clearTimeout(cnpjTimer);
+  cnpjTimer = setTimeout(() => buscarCNPJ(digits), 600);
+}
+
+async function buscarCNPJ(digits) {
+  const spin  = $('cnpj-spin');
+  const filEl = $('filial');
+  const info  = $('cnpj-info');
+
+  spin.textContent = '⟳ consultando...';
+  filEl.textContent = '⟳ buscando na Receita Federal...';
+  filEl.className = 'empty';
+  info.className = 'cnpj-info s2'; // esconde enquanto carrega
+
+  try {
+    const resp = await fetch('https://brasilapi.com.br/api/cnpj/v1/' + digits);
+
+    if (!resp.ok) {
+      spin.textContent = '⚠ não encontrado';
+      filEl.textContent = '— CNPJ não encontrado na Receita Federal —';
+      filEl.className = 'warn';
+      return;
+    }
+
+    const d = await resp.json();
+
+    // Preenche razão social se estiver vazio
+    if (!$('cliente').value && d.razao_social) {
+      $('cliente').value = d.razao_social;
+    }
+
+    // Estado → filial
+    const uf = d.uf || '';
+    $('estado').value = uf;
+    updFilial();
+    spin.textContent = uf ? '✓' : '';
+
+    // ── MONTA OS BADGES DE INFORMAÇÃO ──────────────────────────────
+    // Cada badge é um objeto com texto e classe de cor.
+    // Isso separa os dados da apresentação — boa prática que já vimos.
+    const badges = [];
+
+    // 1. Situação cadastral
+    // situacao_cadastral === 2 significa "Ativa" na Receita Federal
+    const ativa = d.situacao_cadastral === 2;
+    badges.push({
+      txt: ativa ? '✓ Ativa' : '✗ ' + (d.descricao_situacao_cadastral || 'Inativa'),
+      cls: ativa ? 'ok' : 'err'
+    });
+
+    // 2. Natureza jurídica
+    if (d.natureza_juridica) {
+      badges.push({ txt: d.natureza_juridica, cls: 'neu' });
+    }
+
+    // 3. Porte
+    // A API retorna "ME", "EPP", "DEMAIS" ou descrição por extenso
+    const porteMap = { ME:'Microempresa (ME)', EPP:'Pequeno Porte (EPP)', DEMAIS:'Grande Porte' };
+    const porte = d.descricao_porte || porteMap[d.porte] || d.porte;
+    if (porte) badges.push({ txt: porte, cls: 'neu' });
+
+    // 4. Simples Nacional e MEI
+    // opcao_pelo_simples e opcao_pelo_mei são true/false/null
+    if (d.opcao_pelo_mei === true) {
+      badges.push({ txt: 'MEI', cls: 'err' });
+    } else if (d.opcao_pelo_simples === true) {
+      badges.push({ txt: 'Simples Nacional', cls: 'warn' });
+    } else if (d.opcao_pelo_simples === false) {
+      badges.push({ txt: 'Lucro Presumido / Real', cls: 'neu' });
+    }
+
+    // Renderiza os badges como HTML
+    // .map() transforma cada objeto em uma tag <span>
+    // .join('') une todas as strings em uma só
+    info.innerHTML = badges.map(b => `<span class="cib ${b.cls}">${b.txt}</span>`).join('');
+    info.classList.add('show');
+
+  } catch (err) {
+    spin.textContent = '';
+    filEl.textContent = '— erro ao consultar. Selecione o estado manualmente —';
+    filEl.className = 'warn';
+  }
+}
+
 // DROPDOWN
 function renderDD(id,list){
   const dd=$(id);
@@ -383,6 +491,8 @@ function selA(i){
   accs.push({d:x.d,p:x.p,f:x.f,q:qtdR});
   $('buscaA').value='';closeDD('ddA');
   $('accarea').classList.remove('open');
+  $('cnpj-info').className='cnpj-info s2';
+  $('cnpj-spin').textContent='';
   renderKit();toast('✓ '+x.d+' adicionado');
 }
 $('ddA').addEventListener('mousedown',e=>{
@@ -475,6 +585,8 @@ function clearAll(){
   rAtual=null;bAtual=null;accs=[];listR=[];listA=[];
   closeDD('ddR');closeDD('ddA');updFilial();renderKit();
   $('accarea').classList.remove('open');
+  $('cnpj-info').className='cnpj-info s2';
+  $('cnpj-spin').textContent='';
   $('m-subj').textContent='—';
   const p=$('prev');
   p.className='empty';
