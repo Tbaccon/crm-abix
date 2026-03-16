@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abertura de CRM — Abix</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');
+:root{--bg:#0e0f11;--surface:#16181c;--s2:#1c1f25;--border:#2a2d35;--accent:#e8ff47;--a2:#47c9ff;--text:#e8eaf0;--muted:#6b7080;--ok:#47ffb2;--err:#ff6b6b;--warn:#ffb347;--r:6px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;opacity:.35;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")}
+header{border-bottom:1px solid var(--border);padding:20px 36px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}.logo span{color:var(--accent)}
+#clock{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:1fr 1fr;min-height:calc(100vh - 61px)}
+.pl{padding:28px 32px;border-right:1px solid var(--border);overflow-y:auto}
+.pr{padding:28px 32px;display:flex;flex-direction:column;overflow-y:auto}
+.ptitle{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:24px;display:flex;align-items:center;gap:10px}
+.ptitle::after{content:'';flex:1;height:1px;background:var(--border)}
+.sec{margin-bottom:24px}
+.slabel{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.s2{grid-column:span 2}
+.fld{display:flex;flex-direction:column;gap:5px}
+label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+input[type=text],input[type=number],select{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;width:100%;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,255,71,.07)}
+select option{background:#1e2028}
+.sw{position:relative;overflow:visible}
+.sw input{padding-right:32px}
+.sclear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px}
+.sclear:hover{color:var(--text)}
+.dd{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);max-height:220px;overflow-y:auto;z-index:500;display:none;box-shadow:0 8px 32px rgba(0,0,0,.6)}
+.dd.open{display:block}
+.ddi{padding:9px 12px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.04);user-select:none}
+.ddi:last-child{border-bottom:none}
+.ddi:hover,.ddi.on{background:rgba(232,255,71,.09);color:var(--accent)}
+.ddifab{font-size:10px;color:var(--muted);flex-shrink:0;min-width:56px}
+.ddiname{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ddiprice{font-size:11px;color:var(--ok);flex-shrink:0}
+.ddempty{padding:12px;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);text-align:center}
+.ktbl{width:100%;border-collapse:collapse;margin-top:10px;font-family:'DM Mono',monospace;font-size:12px}
+.ktbl th{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)}
+.ktbl td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.ktbl input[type=number]{width:60px;padding:5px 8px;font-size:12px;background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Mono',monospace}
+.rr td{color:var(--a2)}.rb td{color:var(--text)}.ra td{color:var(--muted)}.rc td{color:var(--warn)}
+.rtot td{border-top:1px solid var(--border);border-bottom:none!important;font-weight:700;color:var(--ok);padding-top:10px}
+.ktag{font-size:9px;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.tr{background:rgba(71,201,255,.12);color:var(--a2)}.tb{background:rgba(232,255,71,.1);color:var(--accent)}.ta{background:rgba(107,112,128,.15);color:var(--muted)}.tc{background:rgba(255,179,71,.1);color:var(--warn)}
+.btnrm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px;transition:color .15s}
+.btnrm:hover{color:var(--err)}
+.btnacc{width:100%;margin-top:10px;padding:9px;background:none;border:1px dashed var(--border);border-radius:var(--r);color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.btnacc:hover{border-color:var(--warn);color:var(--warn)}
+.btnacc:disabled{opacity:.3;cursor:not-allowed}
+.accarea{margin-top:8px;padding:12px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);display:none}
+.accarea.open{display:block}
+.accarea label{margin-bottom:6px;display:block}
+#filial{background:rgba(71,201,255,.08);border:1px solid rgba(71,201,255,.25);border-radius:var(--r);padding:9px 12px;font-family:'DM Mono',monospace;font-size:13px;color:var(--a2);min-height:40px;display:flex;align-items:center}
+#filial.empty{color:var(--muted);background:var(--surface);border-color:var(--border)}
+#filial.warn{color:var(--err);background:rgba(255,107,107,.06);border-color:rgba(255,107,107,.25)}
+.btngen{width:100%;padding:15px;background:var(--accent);color:#0e0f11;border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .15s;margin-top:4px}
+.btngen:hover{background:#f5ff6e;transform:translateY(-1px);box-shadow:0 4px 20px rgba(232,255,71,.2)}
+.btngen:active{transform:translateY(0)}
+.mrow{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:11px}
+.mlbl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mval{color:var(--text)}.mval.subj{color:var(--accent);font-weight:500}
+#prev{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-top:16px;font-family:'DM Mono',monospace;font-size:13px;line-height:1.85;color:var(--text);white-space:pre-wrap;word-break:break-word;min-height:280px}
+#prev.empty{display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.estate{text-align:center}.estate .big{font-size:32px;margin-bottom:10px}.estate p{font-size:12px;color:var(--muted)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.btna{padding:12px;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+.btna:hover{border-color:var(--accent);color:var(--accent)}
+.btna.bl{border-color:var(--a2);color:var(--a2)}
+.btna.bl:hover{background:rgba(71,201,255,.08)}
+.btna:disabled{opacity:.3;cursor:not-allowed}
+#fb{text-align:center;font-size:11px;font-family:'DM Mono',monospace;color:var(--ok);height:16px;margin-top:5px;opacity:0;transition:opacity .3s}
+#fb.show{opacity:1}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 18px;font-family:'DM Mono',monospace;font-size:12px;border-left:3px solid;transform:translateY(8px);opacity:0;transition:all .2s;z-index:1000}
+.toast.show{transform:translateY(0);opacity:1}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Abix <span>·</span> Abertura de CRM</div>
+  <div id="clock"></div>
+</header>
+<div class="layout">
+  <div class="pl">
+    <div class="ptitle">Dados do Negócio</div>
+    <div class="sec">
+      <div class="slabel">Cliente</div>
+      <div class="g2">
+        <div class="fld s2"><label>Nome da Empresa</label><input type="text" id="cliente" placeholder="Ex: LD Celulose S/A"></div>
+        <div class="fld"><label>CNPJ</label><input type="text" id="cnpj" placeholder="00.000.000/0001-00"></div>
+        <div class="fld"><label>Estado</label>
+          <select id="estado" onchange="updFilial()">
+            <option value="">Selecione...</option>
+            <option value="PR">PR — Paraná</option>
+            <option value="SC">SC — Santa Catarina</option>
+            <option value="SP">SP — São Paulo</option>
+            <option value="MG">MG — Minas Gerais</option>
+            <option value="RJ">RJ — Rio de Janeiro</option>
+            <option value="ES">ES — Espírito Santo</option>
+            <option value="BA">BA — Bahia</option>
+            <option value="OUTRO">Outro estado</option>
+          </select>
+        </div>
+        <div class="fld s2"><label>Filial Responsável</label><div id="filial" class="empty">— selecione o estado —</div></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="slabel">Contato</div>
+      <div class="g2">
+        <div class="fld s2"><label>Nome</label><input type="text" id="contato" placeholder="Ex: Jackson Ramos"></div>
+        <div class="fld"><label>Email</label><input type="text" id="ecli" placeholder="contato@empresa.com"></div>
+        <div class="fld"><label>Telefone</label><input type="text" id="tel" placeholder="(41) 99999-9999"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="slabel">Kit de Locação</div>
+      <div class="g2" style="margin-bottom:10px">
+        <div class="fld s2"><label>Rádio Principal</label>
+          <div class="sw" id="wr">
+            <input type="text" id="buscaR" placeholder="Digite o modelo..." autocomplete="off"
+              oninput="filterR()" onfocus="focusR()"
+              onkeydown="navK(event,'ddR',listR,selR)">
+            <button class="sclear" onclick="clearR()">×</button>
+            <div class="dd" id="ddR"></div>
+          </div>
+        </div>
+        <div class="fld"><label>Qtd. Rádios</label><input type="number" id="qtdR" min="1" placeholder="10" oninput="renderKit()"></div>
+        <div class="fld"><label>Prazo</label>
+          <select id="prazo" onchange="renderKit()">
+            <option value="0">Auto 30 dias</option>
+            <option value="0.04">12 meses (-4%)</option>
+            <option value="0.10">24 meses (-10%)</option>
+            <option value="0.135">36 meses (-13,5%)</option>
+            <option value="0.15">48 meses (-15%)</option>
+          </select>
+        </div>
+      </div>
+      <table class="ktbl">
+        <thead><tr><th>Tipo</th><th>Item</th><th style="text-align:right">Qtd</th><th style="text-align:right">Unit/mês</th><th style="text-align:right">Subtotal</th><th></th></tr></thead>
+        <tbody id="kb"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px;font-family:'DM Mono',monospace;font-size:12px">Selecione um rádio para montar o kit</td></tr></tbody>
+        <tfoot id="kf"></tfoot>
+      </table>
+      <button class="btnacc" id="btnacc" disabled onclick="toggleAcc()">+ Adicionar Acessório</button>
+      <div class="accarea" id="accarea">
+        <label>Buscar Acessório</label>
+        <div class="sw" id="wa">
+          <input type="text" id="buscaA" placeholder="Ex: fone de ouvido..." autocomplete="off"
+            oninput="filterA()" onkeydown="navK(event,'ddA',listA,selA)">
+          <button class="sclear" onclick="clearA()">×</button>
+          <div class="dd" id="ddA"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="slabel">Dynamix</div>
+      <div class="fld"><label>URL do Negócio</label><input type="text" id="url" placeholder="https://dynamix.com.br/clientes/4821"></div>
+    </div>
+    <button class="btngen" onclick="genEmail()">⚡ Gerar Email</button>
+  </div>
+  <div class="pr">
+    <div class="ptitle">Prévia do Email</div>
+    <div class="mrow">
+      <span class="mlbl">Para</span><span class="mval" id="m-dest"></span>
+      <span class="mlbl">Cópia</span><span class="mval" id="m-cc"></span>
+      <span class="mlbl">Assunto</span><span class="mval subj" id="m-subj">—</span>
+    </div>
+    <div id="prev" class="empty">
+      <div class="estate"><div class="big">✉</div><p>Preencha os dados e clique em<br><strong>Gerar Email</strong></p></div>
+    </div>
+    <div class="acts">
+      <button class="btna" onclick="clearAll()">↺ Limpar Tudo</button>
+      <button class="btna bl" id="btncopy" onclick="copyEmail()" disabled>⎘ Copiar Corpo</button>
+    </div>
+    <div id="fb">✓ Copiado para a área de transferência</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// EMAILS NO JS — evita obfuscação por proxies/CDN durante download do arquivo
+const ED = 'backoffice.comercial' + '@' + 'abix.com.br';
+const EC = 'jorge.eduardo'        + '@' + 'abix.com.br';
+document.getElementById('m-dest').textContent = ED;
+document.getElementById('m-cc').textContent   = EC;
+
+// PREÇOS FIXOS — muda aqui, reflete em todo o código
+const PB = 2;  // base carregador
+const PT = 3;  // trafo bivolt
+
+// UTILITÁRIOS
+const brl = n => Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2});
+const nor = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const $ = id => document.getElementById(id);
+const val = id => $(id).value.trim();
+
+// CATÁLOGO
+const CAT = [
+  {d:"RÁDIO ALSON DAP560",p:60,f:"ALSON",b:"BATERIA PARA RÁDIO ALSON DAP560"},
+  {d:"BATERIA PARA RÁDIO ALSON DAP560",p:5,f:"ALSON"},
+  {d:"RÁDIO HYTERA HP50X",p:70,f:"HYTERA",b:"BATERIA PARA RÁDIO HP50X"},
+  {d:"BATERIA PARA RÁDIO HP50X",p:20,f:"HYTERA"},
+  {d:"RÁDIO HYTERA HP606",p:90,f:"HYTERA",b:"BATERIA PARA RÁDIO HP606"},
+  {d:"BATERIA PARA RÁDIO HP606",p:20,f:"HYTERA"},
+  {d:"RÁDIO HYTERA HP706",p:90,f:"HYTERA",b:"BATERIA PARA RÁDIO HP706"},
+  {d:"BATERIA PARA RÁDIO HP706",p:20,f:"HYTERA"},
+  {d:"RÁDIO HYTERA HP786",p:90,f:"HYTERA",b:"BATERIA PARA RÁDIOS HP786"},
+  {d:"BATERIA PARA RÁDIOS HP786",p:20,f:"HYTERA"},
+  {d:"RÁDIO HYTERA PD416",p:75,f:"HYTERA",b:"BATERIA PARA RÁDIO PD416"},
+  {d:"BATERIA PARA RÁDIO PD416",p:10,f:"HYTERA"},
+  {d:"RÁDIO HYTERA PD506",p:60,f:"HYTERA",b:"BATERIA PARA RÁDIO PD506"},
+  {d:"BATERIA PARA RÁDIO PD506",p:15,f:"HYTERA"},
+  {d:"RÁDIO HYTERA PD566",p:60,f:"HYTERA",b:"BATERIA PARA RÁDIO PD566"},
+  {d:"BATERIA PARA RÁDIO PD566",p:15,f:"HYTERA"},
+  {d:"RÁDIO HYTERA PT590",p:225,f:"HYTERA",b:"BATERIA PARA RÁDIO PT590"},
+  {d:"BATERIA PARA RÁDIO PT590",p:25,f:"HYTERA"},
+  {d:"RÁDIO HYTERA PD716EX",p:555,f:"HYTERA",b:"BATERIA PARA RÁDIOS PD716EX"},
+  {d:"BATERIA PARA RÁDIOS PD716EX",p:80,f:"HYTERA"},
+  {d:"RÁDIO HYTERA PD796EX",p:555,f:"HYTERA",b:"BATERIA PARA RÁDIO PD796EX"},
+  {d:"BATERIA PARA RÁDIO PD796EX",p:80,f:"HYTERA"},
+  {d:"RÁDIO HYTERA HP71XEX",p:555,f:"HYTERA",b:"BATERIA PAR RÁDIO HP71XEX"},
+  {d:"BATERIA PAR RÁDIO HP71XEX",p:80,f:"HYTERA"},
+  {d:"RÁDIO HYTERA PD790EX",p:555,f:"HYTERA",b:"BATERIA PARA RÁDIO PD790EX"},
+  {d:"BATERIA PARA RÁDIO PD790EX",p:80,f:"HYTERA"},
+  {d:"RÁDIO HYTERA PT890EX",p:555,f:"HYTERA",b:"BATERIA PARA RÁDIO PD890EX"},
+  {d:"BATERIA PARA RÁDIO PD890EX",p:80,f:"HYTERA"},
+  {d:"RÁDIO MOTOROLA DEP250",p:70,f:"MOTOROLA",b:"BATERIA PARA RÁDIO DEP250"},
+  {d:"BATERIA PARA RÁDIO DEP250",p:10,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA DEP450",p:70,f:"MOTOROLA",b:"BATERIA PARA DEP450"},
+  {d:"BATERIA PARA DEP450",p:20,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA DTR620",p:80,f:"MOTOROLA",b:"BATERIA PARA DTR620"},
+  {d:"BATERIA PARA DTR620",p:10,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA DEP550",p:135,f:"MOTOROLA",b:"BATERIA PARA DEP550"},
+  {d:"BATERIA PARA DEP550",p:35,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA DGP4150",p:110,f:"MOTOROLA",b:"BATERIA PARA DGP4150"},
+  {d:"BATERIA PARA DGP4150",p:25,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA DGP6150",p:115,f:"MOTOROLA",b:"BATERIA PARA DGP6150"},
+  {d:"BATERIA PARA DGP6150",p:25,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA DGP5050",p:135,f:"MOTOROLA",b:"BATERIA PARA DGP5050"},
+  {d:"BATERIA PARA DGP5050",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA DGP8050",p:145,f:"MOTOROLA",b:"BATERIA PARA DGP8050"},
+  {d:"BATERIA PARA DGP8050",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA DGP8550",p:150,f:"MOTOROLA",b:"BATERIA PARA DGP8550"},
+  {d:"BATERIA PARA DGP8550",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA DGP8050EX",p:555,f:"MOTOROLA",b:"BATERIA PARA DGP8050EX"},
+  {d:"BATERIA PARA DGP8050EX",p:80,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA R2",p:90,f:"MOTOROLA",b:"BATERIA PARA R2"},
+  {d:"BATERIA PARA R2",p:20,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA R7",p:216,f:"MOTOROLA",b:"BATERIA PARA R7"},
+  {d:"BATERIA PARA R7",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA MTP3100",p:145,f:"MOTOROLA",b:"BATERIA PARA MTP3100"},
+  {d:"BATERIA PARA MTP3100",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA MTP3250",p:145,f:"MOTOROLA",b:"BATERIA MTP3250"},
+  {d:"BATERIA MTP3250",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA MTP3500",p:165,f:"MOTOROLA",b:"BATERIA MTP3500"},
+  {d:"BATERIA MTP3500",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA MTP3550",p:165,f:"MOTOROLA",b:"BATERIA PARA MTP3550"},
+  {d:"BATERIA PARA MTP3550",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA MTP850",p:115,f:"MOTOROLA",b:"BATERIA PARA MTP850"},
+  {d:"BATERIA PARA MTP850",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA MXP600",p:185,f:"MOTOROLA",b:"BATERIA PARA MXP600"},
+  {d:"BATERIA PARA MXP600",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA XTS1500",p:335,f:"MOTOROLA",b:"BATERIA PARA XTS1500"},
+  {d:"BATERIA PARA XTS1500",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA XTS2250",p:335,f:"MOTOROLA",b:"BATERIA PARA XTS2250"},
+  {d:"BATERIA PARA XTS2250",p:30,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA MTP8500EX",p:555,f:"MOTOROLA",b:"BATERIA PARA MTP8500EX"},
+  {d:"BATERIA PARA MTP8500EX",p:80,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA MTP8550EX",p:555,f:"MOTOROLA",b:"BATERIA PARA MTP8550EX"},
+  {d:"BATERIA PARA MTP8550EX",p:80,f:"MOTOROLA"},
+  {d:"RÁDIO MOTOROLA PRO5150IS",p:155,f:"MOTOROLA",b:"BATERIA PARA PRO5150IS"},
+  {d:"BATERIA PARA PRO5150IS",p:40,f:"MOTOROLA"},
+  {d:"RÁDIO SEPURA STP8X038EX",p:555,f:"SEPURA",b:"BATERIA PARA STP8X038EX"},
+  {d:"BATERIA PARA STP8X038EX",p:50,f:"SEPURA"},
+  {d:"RÁDIO SEPURA STP8X138EX",p:555,f:"SEPURA",b:"BATERIA PARA STP8X138EX"},
+  {d:"BATERIA PARA STP8X138EX",p:50,f:"SEPURA"},
+  {d:"RÁDIO TAIT TP2210",p:55,f:"TAIT",b:"BATERIA PARA TP2210"},
+  {d:"BATERIA PARA TP2210",p:10,f:"TAIT"},
+  {d:"RÁDIO TAIT TP9361EX",p:555,f:"TAIT",b:"BATERIA PARA TP9361EX"},
+  {d:"BATERIA PARA TP9361EX",p:80,f:"TAIT"},
+  {d:"SISTEMA DE REPETIDORA DMR II",p:2200,f:"MOTOROLA"},
+  {d:"RÁDIO MÓVEL MD786G",p:280,f:"HYTERA"},{d:"RÁDIO MÓVEL HM786GBTH",p:280,f:"HYTERA"},
+  {d:"RÁDIO MÓVEL MT680+",p:295,f:"HYTERA"},{d:"RÁDIO MÓVEL ICA110/120",p:620,f:"ICOM"},
+  {d:"RÁDIO MÓVEL DEM300",p:210,f:"MOTOROLA"},{d:"RÁDIO MÓVEL DEM400",p:220,f:"MOTOROLA"},
+  {d:"RÁDIO MÓVEL DGM8000",p:290,f:"MOTOROLA"},{d:"RÁDIO MÓVEL DGM4100",p:290,f:"MOTOROLA"},
+  {d:"RÁDIO MÓVEL DGM6100",p:290,f:"MOTOROLA"},{d:"RÁDIO MÓVEL DGM800E",p:290,f:"MOTOROLA"},
+  {d:"RÁDIO MÓVEL DGM8500",p:290,f:"MOTOROLA"},{d:"RÁDIO MÓVEL EM400",p:180,f:"MOTOROLA"},
+  {d:"RÁDIO MÓVEL MTM5400",p:295,f:"MOTOROLA"},{d:"RÁDIO MÓVEL MTM800",p:295,f:"MOTOROLA"},
+  {d:"RÁDIO MÓVEL MXM600",p:295,f:"MOTOROLA"},{d:"RÁDIO MÓVEL TM8355",p:295,f:"TAIT"},
+  {d:"CONVERSOR PARA RÁDIO MÓVEL",p:30,f:"FORNECEDOR"},
+  {d:"SMARTPHONE IS530.1 EX",p:900,f:"I.SAFE"},{d:"SMARTPHONE IS540.1 EX",p:1100,f:"I.SAFE"},
+  {d:"TABLET IS930.1 EX",p:1600,f:"I.SAFE"},
+  {d:"SERVICO INSTALACAO INFRAESTRUTURA",p:8500,f:"Servico"},
+  {d:"SERVICO INSTALACAO RADIOS MOVEL",p:850,f:"Servico"},
+  {d:"SERVICO REPROGRAMACAO RADIOS",p:1600,f:"Servico"},
+];
+
+const RADIOS = CAT.filter(x => nor(x.d).startsWith('radio'));
+const OUTROS = CAT.filter(x => !nor(x.d).startsWith('radio') && !nor(x.d).includes('bateria'));
+
+// ESTADO
+let rAtual=null, bAtual=null, accs=[], listR=[], listA=[];
+
+// RELÓGIO
+function tick(){$('clock').textContent=new Date().toLocaleTimeString('pt-BR');}
+setInterval(tick,1000);tick();
+function greet(){const h=new Date().getHours();return h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';}
+
+// FILIAL
+const FIL={PR:'Matriz',SC:'Itajaí',SP:'São Paulo',MG:'Uberlândia',RJ:'Niterói',ES:'Niterói',BA:'Lauro de Freitas'};
+function updFilial(){
+  const v=$('estado').value,el=$('filial');
+  if(!v){el.textContent='— selecione o estado —';el.className='empty';return;}
+  const f=FIL[v];
+  if(f){el.textContent=f;el.className='';}
+  else{el.textContent='⚠ Estado não mapeado';el.className='warn';}
+}
+
+// DROPDOWN
+function renderDD(id,list){
+  const dd=$(id);
+  dd.innerHTML=list.length
+    ? list.map((x,i)=>`<div class="ddi" data-i="${i}"><span class="ddifab">${x.f}</span><span class="ddiname">${x.d}</span><span class="ddiprice">R$ ${brl(x.p)}</span></div>`).join('')
+    : '<div class="ddempty">Nenhum produto encontrado</div>';
+  dd.classList.add('open');
+}
+function closeDD(id){$(id).classList.remove('open');}
+function navK(e,id,list,fn){
+  const items=$(id).querySelectorAll('.ddi');
+  if(!items.length)return;
+  let idx=Array.from(items).findIndex(x=>x.classList.contains('on'));
+  if(e.key==='ArrowDown'){e.preventDefault();idx=Math.min(idx+1,items.length-1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();idx=Math.max(idx-1,0);}
+  else if(e.key==='Enter'&&idx>=0){e.preventDefault();fn(idx);return;}
+  else if(e.key==='Escape'){closeDD(id);return;}
+  items.forEach((el,i)=>el.classList.toggle('on',i===idx));
+}
+document.addEventListener('mousedown',e=>{
+  if(!e.target.closest('.sw')){closeDD('ddR');closeDD('ddA');}
+});
+
+// BUSCA RÁDIO
+function filterR(){
+  rAtual=null;bAtual=null;renderKit();
+  const q=nor($('buscaR').value);
+  if(!q){closeDD('ddR');return;}
+  listR=RADIOS.filter(x=>nor(x.d).includes(q));
+  renderDD('ddR',listR);
+}
+function focusR(){if($('buscaR').value)renderDD('ddR',listR);}
+function clearR(){$('buscaR').value='';rAtual=null;bAtual=null;listR=[];accs=[];closeDD('ddR');renderKit();}
+function selR(i){
+  const r=listR[i];if(!r)return;
+  rAtual=r;
+  const sig=nor(r.d.split(' ').pop());
+  const fab=nor(r.f);
+  bAtual=CAT.find(x=>nor(x.d).includes('bateria')&&nor(x.f)===fab&&nor(x.d).includes(sig))
+        ||CAT.find(x=>nor(x.d).includes('bateria')&&nor(x.f)===fab)||null;
+  $('buscaR').value=r.d;
+  closeDD('ddR');renderKit();
+}
+$('ddR').addEventListener('mousedown',e=>{
+  const it=e.target.closest('.ddi');
+  if(!it)return;
+  e.preventDefault();
+  selR(parseInt(it.dataset.i));
+});
+
+// BUSCA ACESSÓRIO
+function filterA(){
+  const q=nor($('buscaA').value);
+  if(!q){closeDD('ddA');return;}
+  listA=OUTROS.filter(x=>nor(x.d).includes(q));
+  renderDD('ddA',listA);
+}
+function clearA(){$('buscaA').value='';listA=[];closeDD('ddA');}
+function selA(i){
+  const x=listA[i];if(!x)return;
+  const qtdR=parseInt($('qtdR').value)||1;
+  accs.push({d:x.d,p:x.p,f:x.f,q:qtdR});
+  $('buscaA').value='';closeDD('ddA');
+  $('accarea').classList.remove('open');
+  renderKit();toast('✓ '+x.d+' adicionado');
+}
+$('ddA').addEventListener('mousedown',e=>{
+  const it=e.target.closest('.ddi');
+  if(!it)return;
+  e.preventDefault();
+  selA(parseInt(it.dataset.i));
+});
+function toggleAcc(){
+  $('accarea').classList.toggle('open');
+  if($('accarea').classList.contains('open'))setTimeout(()=>$('buscaA').focus(),50);
+}
+function rmAcc(i){accs.splice(i,1);renderKit();}
+
+// KIT
+function renderKit(){
+  const kb=$('kb'),kf=$('kf'),btn=$('btnacc');
+  if(!rAtual){
+    kb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px;font-family:\'DM Mono\',monospace;font-size:12px">Selecione um rádio para montar o kit</td></tr>';
+    kf.innerHTML='';btn.disabled=true;return;
+  }
+  btn.disabled=false;
+  const qtdR=parseInt($('qtdR').value)||0;
+  const qtdB=parseInt($('qtd-bat')?.value)||qtdR;
+  const dc=parseFloat($('prazo').value);
+  const f=1-dc;
+  const rows=[
+    {tag:'Rádio', tc:'tr', rc:'rr', d:rAtual.d,   q:qtdR, p:rAtual.p, edit:false, id:null},
+    {tag:'Bat.',  tc:'tb', rc:'rb', d:bAtual?bAtual.d:'—', q:qtdB, p:bAtual?bAtual.p:0, edit:true, id:'qtd-bat'},
+    {tag:'Base',  tc:'ta', rc:'ra', d:'Base carregador', q:qtdR, p:PB, edit:false, id:null},
+    {tag:'Trafo', tc:'ta', rc:'ra', d:'Trafo bivolt',    q:qtdR, p:PT, edit:false, id:null},
+  ];
+  accs.forEach((a,i)=>rows.push({tag:'Acess.',tc:'tc',rc:'rc',d:a.d,q:a.q,p:a.p,edit:true,id:'qa'+i,ri:i,rm:true}));
+  kb.innerHTML=rows.map(r=>{
+    const sub=r.q*r.p*f;
+    const qcell=r.edit
+      ?`<input type="number" id="${r.id}" min="0" value="${r.q}" oninput="${r.rm?'accs['+r.ri+'].q=parseInt(this.value)||0;':''}renderKit()">`
+      :r.q;
+    const rmbtn=r.rm?`<button class="btnrm" onclick="rmAcc(${r.ri})">×</button>`:'';
+    return`<tr class="${r.rc}"><td><span class="ktag ${r.tc}">${r.tag}</span></td><td>${r.d}</td><td style="text-align:right">${qcell}</td><td style="text-align:right">R$ ${brl(r.p*f)}</td><td style="text-align:right">${qtdR?'R$ '+brl(sub):'—'}</td><td>${rmbtn}</td></tr>`;
+  }).join('');
+  const tot=rows.reduce((s,r)=>s+r.q*r.p*f,0);
+  const pl=$('prazo').selectedOptions[0].text;
+  kf.innerHTML=`<tr class="rtot"><td colspan="4" style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em">Total / mês — ${pl}</td><td style="text-align:right;font-size:14px">R$ ${qtdR?brl(tot):'—'}</td><td></td></tr>`;
+}
+
+// GERAR EMAIL
+function genEmail(){
+  const cli=val('cliente'),cnpj=val('cnpj'),cont=val('contato');
+  const ecli=val('ecli'),tel=val('tel'),url=val('url');
+  if(!cli||!cnpj||!cont||!url){toast('⚠ Preencha: empresa, CNPJ, contato e URL.','e');return;}
+  if(!rAtual){toast('⚠ Selecione um rádio.','e');return;}
+  const qtdR=parseInt($('qtdR').value)||0;
+  if(!qtdR){toast('⚠ Informe a quantidade de rádios.','e');return;}
+  const dc=parseFloat($('prazo').value);
+  const f=1-dc;
+  const pl=$('prazo').selectedOptions[0].text;
+  const qtdB=parseInt($('qtd-bat')?.value)||qtdR;
+  const fil=$('filial').textContent;
+  const itens=[
+    {d:rAtual.d, q:qtdR, p:rAtual.p},
+    ...(bAtual?[{d:bAtual.d,q:qtdB,p:bAtual.p}]:[]),
+    {d:'Base carregador',q:qtdR,p:PB},
+    {d:'Trafo bivolt',q:qtdR,p:PT},
+    ...accs.map((a,i)=>({d:a.d,q:parseInt($('qa'+i)?.value)||a.q,p:a.p}))
+  ];
+  const linhas=itens.map(it=>`${it.q}x ${it.d} — R$ ${brl(it.q*it.p*f)}/mês`).join('\n');
+  const tot=itens.reduce((s,it)=>s+it.q*it.p*f,0);
+  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\nTotal: R$ ${brl(tot)}/mês (${pl})\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
+  $('m-subj').textContent=`Aprovação e qualificação - ${cli}`;
+  const p=$('prev');
+  p.className='';p.textContent=corpo;p.dataset.c=corpo;
+  $('btncopy').disabled=false;
+  toast('✓ Email gerado com sucesso!');
+}
+
+// COPIAR
+function copyEmail(){
+  const c=$('prev').dataset.c;if(!c)return;
+  navigator.clipboard.writeText(c).then(()=>{
+    $('fb').classList.add('show');
+    setTimeout(()=>$('fb').classList.remove('show'),2500);
+  });
+}
+
+// LIMPAR
+function clearAll(){
+  document.querySelectorAll('input[type=text],input[type=number]').forEach(x=>x.value='');
+  $('estado').value='';$('prazo').value='0';
+  rAtual=null;bAtual=null;accs=[];listR=[];listA=[];
+  closeDD('ddR');closeDD('ddA');updFilial();renderKit();
+  $('accarea').classList.remove('open');
+  $('m-subj').textContent='—';
+  const p=$('prev');
+  p.className='empty';
+  p.innerHTML='<div class="estate"><div class="big">✉</div><p>Preencha os dados e clique em<br><strong>Gerar Email</strong></p></div>';
+  p.dataset.c='';$('btncopy').disabled=true;
+}
+
+// TOAST
+function toast(msg,tipo=''){
+  const t=$('toast');
+  const cor=tipo==='e'?'var(--err)':'var(--ok)';
+  t.textContent=msg;t.style.color=cor;t.style.borderLeftColor=cor;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);
+}
+</script>
+</body>
+</html>
