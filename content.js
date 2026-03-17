@@ -64,3 +64,18 @@ window.__abixLerDados = function() {
 
   return { nome, celular, telComercial, email };
 };
+
+// Captura a URL do botão Compartilhar do Dynamics
+// O botão Compartilhar gera um link direto para o registro
+window.__abixLerUrlCompartilhar = function() {
+  // Tenta encontrar o link gerado pelo botão Compartilhar
+  // O Dynamics coloca o link num input ou span após clicar em Compartilhar
+  const shareInput = document.querySelector(
+    'input[aria-label*="ompartilhar"], input[aria-label*="hare"], ' +
+    'input[class*="share"], div[data-id*="share"] input'
+  );
+  if (shareInput && shareInput.value) return shareInput.value.trim();
+
+  // Fallback: usa a URL atual da página (já contém o ID do registro)
+  return window.location.href;
+};

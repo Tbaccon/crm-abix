@@ -38,7 +38,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
     // Após injetar, chama a função que lê os campos
     const leitura = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: () => window.__abixLerDados && window.__abixLerDados()
+      func: () => { const d = window.__abixLerDados ? window.__abixLerDados() : {}; d.urlCompartilhar = window.__abixLerUrlCompartilhar ? window.__abixLerUrlCompartilhar() : window.location.href; return d; }
     });
 
     const dados = leitura[0]?.result;
@@ -78,7 +78,7 @@ btnEl.addEventListener('click', () => {
     cel:   dadosCapturados.celular       || '',
     tel:   dadosCapturados.telComercial  || '',
     email: dadosCapturados.email         || '',
-    url:   window.location?.href         || '',
+    url:   dadosCapturados.urlCompartilhar || dadosCapturados.url || '',
   });
 
   // Abre uma nova aba com o formulário já preenchido
