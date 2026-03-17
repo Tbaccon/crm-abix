@@ -26,8 +26,17 @@ label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:upperca
 input[type=text],input[type=number],select{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;width:100%;outline:none;transition:border-color .15s,box-shadow .15s}
 input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,255,71,.07)}
 select option{background:#1e2028}
-select:-webkit-autofill,select:-webkit-autofill:hover,select:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px var(--surface) inset!important;box-shadow:0 0 0 1000px var(--surface) inset!important;border-color:var(--border)!important}
-#filial:-webkit-autofill,#filial:-webkit-autofill:focus,#filial:not(:focus){border-color:var(--border)!important;box-shadow:none!important}
+.filial-wrap{position:relative;width:100%}
+.filial-btn{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;padding:9px 32px 9px 12px;text-align:left;cursor:pointer;transition:border-color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;outline:none;appearance:none;position:relative}
+.filial-btn::after{content:'▾';position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.filial-btn.selected{color:var(--text)}
+.filial-btn:focus,.filial-btn:hover{border-color:var(--accent)}
+.filial-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#1e2028;border:1px solid var(--border);border-radius:var(--r);z-index:200;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.filial-list.open{display:block}
+.filial-opt{padding:9px 12px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;color:var(--text)}
+.filial-opt:hover,.filial-opt.active{background:rgba(232,255,71,.08);color:var(--accent)}
+.filial-opt.placeholder{color:var(--muted)}
+
 .sw{position:relative;overflow:visible}
 .sw input{padding-right:32px}
 .sclear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px}
@@ -134,15 +143,19 @@ select:-webkit-autofill,select:-webkit-autofill:hover,select:-webkit-autofill:fo
           </select>
         </div>
         <div class="fld s2"><label>Filial Responsável</label>
-          <select id="filial" autocomplete="off">
-            <option value="">— selecione ou será preenchido pelo CNPJ —</option>
-            <option value="Matriz">Matriz (PR)</option>
-            <option value="Itajaí">Itajaí (SC)</option>
-            <option value="São Paulo">São Paulo (SP)</option>
-            <option value="Uberlândia">Uberlândia (MG)</option>
-            <option value="Niterói">Niterói (RJ/ES)</option>
-            <option value="Lauro de Freitas">Lauro de Freitas (BA)</option>
-          </select>
+          <div class="filial-wrap">
+            <button type="button" class="filial-btn" id="filial-btn" onclick="toggleFilial()">— selecione ou será preenchido pelo CNPJ —</button>
+            <div class="filial-list" id="filial-list">
+              <div class="filial-opt placeholder" data-val="">— selecione ou será preenchido pelo CNPJ —</div>
+              <div class="filial-opt" data-val="Matriz">Matriz (PR)</div>
+              <div class="filial-opt" data-val="Itajaí">Itajaí (SC)</div>
+              <div class="filial-opt" data-val="São Paulo">São Paulo (SP)</div>
+              <div class="filial-opt" data-val="Uberlândia">Uberlândia (MG)</div>
+              <div class="filial-opt" data-val="Niterói">Niterói (RJ/ES)</div>
+              <div class="filial-opt" data-val="Lauro de Freitas">Lauro de Freitas (BA)</div>
+            </div>
+            <input type="hidden" id="filial" value="">
+          </div>
         </div>
         <div class="cnpj-info s2" id="cnpj-info"></div>
       </div>
@@ -251,8 +264,6 @@ const ED = 'backoffice.comercial' + '@' + 'abix.com.br';
 const EC = 'jorge.eduardo'        + '@' + 'abix.com.br';
 document.getElementById('m-dest').textContent = ED;
 document.getElementById('m-cc').textContent   = EC;
-// Remove foco automático do Edge autofill no select de filial
-setTimeout(()=>{ const f=$('filial'); if(f===document.activeElement) f.blur(); },200);
 
 // LÊ PARÂMETROS DA URL — preenchidos pela extensão do Edge/Chrome
 // URLSearchParams faz o parsing automático de ?nome=X&cel=Y&email=Z
@@ -401,14 +412,45 @@ function tick(){$('clock').textContent=new Date().toLocaleTimeString('pt-BR');}
 setInterval(tick,1000);tick();
 function greet(){const h=new Date().getHours();return h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';}
 
+
+// FILIAL — dropdown customizado (evita autofill do Edge em select nativo)
+const FILIAIS_OPTS = [
+  {val:'Matriz',        lab:'Matriz (PR)'},
+  {val:'Itajaí',       lab:'Itajaí (SC)'},
+  {val:'São Paulo',    lab:'São Paulo (SP)'},
+  {val:'Uberlândia',   lab:'Uberlândia (MG)'},
+  {val:'Niterói',      lab:'Niterói (RJ/ES)'},
+  {val:'Lauro de Freitas', lab:'Lauro de Freitas (BA)'},
+];
+
+function toggleFilial(){
+  document.getElementById('filial-list').classList.toggle('open');
+}
+function setFilial(val, lab){
+  document.getElementById('filial').value = val;
+  const btn = document.getElementById('filial-btn');
+  btn.textContent = lab || '— selecione ou será preenchido pelo CNPJ —';
+  btn.classList.toggle('selected', !!val);
+  document.getElementById('filial-list').classList.remove('open');
+}
+// Event delegation no dropdown de filial
+document.addEventListener('click', e => {
+  const opt = e.target.closest('.filial-opt');
+  if (opt) { setFilial(opt.dataset.val, opt.textContent.trim()); return; }
+  if (!e.target.closest('.filial-wrap')) {
+    document.getElementById('filial-list').classList.remove('open');
+  }
+});
+
 // FILIAL
 const FIL={PR:'Matriz',SC:'Itajaí',SP:'São Paulo',MG:'Uberlândia',RJ:'Niterói',ES:'Niterói',BA:'Lauro de Freitas'};
 function updFilial(){
-  // Preenche automaticamente pelo estado mas deixa o select editável
   const v=$('estado').value;
   const f=FIL[v];
-  if(f) $('filial').value=f;
-  // Se não mapeado, não força — usuário escolhe manualmente
+  if(f){
+    const opt=FILIAIS_OPTS.find(o=>o.val===f);
+    setFilial(f, opt?opt.lab:f);
+  }
 }
 
 
@@ -738,7 +780,7 @@ function clearAll(){
   $('cricom').value='';
   $('cnpj-info').className='cnpj-info s2';
   $('cnpj-spin').textContent='';
-  $('filial').value='';
+  setFilial('','');
   $('m-subj').textContent='—';
   const p=$('prev');
   p.className='empty';
