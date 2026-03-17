@@ -114,7 +114,17 @@ select option{background:#1e2028}
             <option value="OUTRO">Outro estado</option>
           </select>
         </div>
-        <div class="fld s2"><label>Filial Responsável</label><div id="filial" class="empty">— selecione o estado —</div></div>
+        <div class="fld s2"><label>Filial Responsável</label>
+          <select id="filial">
+            <option value="">— selecione ou será preenchido pelo CNPJ —</option>
+            <option value="Matriz">Matriz (PR)</option>
+            <option value="Itajaí">Itajaí (SC)</option>
+            <option value="São Paulo">São Paulo (SP)</option>
+            <option value="Uberlândia">Uberlândia (MG)</option>
+            <option value="Niterói">Niterói (RJ/ES)</option>
+            <option value="Lauro de Freitas">Lauro de Freitas (BA)</option>
+          </select>
+        </div>
         <div class="cnpj-info s2" id="cnpj-info"></div>
       </div>
     </div>
@@ -373,11 +383,11 @@ function greet(){const h=new Date().getHours();return h<12?'Bom dia':h<18?'Boa t
 // FILIAL
 const FIL={PR:'Matriz',SC:'Itajaí',SP:'São Paulo',MG:'Uberlândia',RJ:'Niterói',ES:'Niterói',BA:'Lauro de Freitas'};
 function updFilial(){
-  const v=$('estado').value,el=$('filial');
-  if(!v){el.textContent='— selecione o estado —';el.className='empty';return;}
+  // Preenche automaticamente pelo estado mas deixa o select editável
+  const v=$('estado').value;
   const f=FIL[v];
-  if(f){el.textContent=f;el.className='';}
-  else{el.textContent='⚠ Estado não mapeado';el.className='warn';}
+  if(f) $('filial').value=f;
+  // Se não mapeado, não força — usuário escolhe manualmente
 }
 
 
@@ -623,21 +633,26 @@ function renderKit(){
   const dc=parseFloat($('prazo').value);
   const f=1-dc;
   const rows=[
-    {tag:'Rádio', tc:'tr', rc:'rr', d:rAtual.d,   q:qtdR, p:rAtual.p, edit:false, id:null},
-    {tag:'Bat.',  tc:'tb', rc:'rb', d:bAtual?bAtual.d:'—', q:qtdB, p:bAtual?bAtual.p:0, edit:true, id:'qtd-bat'},
-    {tag:'Base',  tc:'ta', rc:'ra', d:'Base carregador', q:qtdR, p:PB, edit:false, id:null},
-    {tag:'Trafo', tc:'ta', rc:'ra', d:'Trafo bivolt',    q:qtdR, p:PT, edit:false, id:null},
+    {tag:'Rádio', tc:'tr', rc:'rr', d:rAtual.d,   q:qtdR, p:rAtual.p, editq:false, id:null,      pid:'pu-radio'},
+    {tag:'Bat.',  tc:'tb', rc:'rb', d:bAtual?bAtual.d:'—', q:qtdB, p:bAtual?bAtual.p:0, editq:true, id:'qtd-bat', pid:'pu-bat'},
+    {tag:'Base',  tc:'ta', rc:'ra', d:'Base carregador', q:qtdR, p:PB, editq:false, id:null,      pid:'pu-base'},
+    {tag:'Trafo', tc:'ta', rc:'ra', d:'Trafo bivolt',    q:qtdR, p:PT, editq:false, id:null,      pid:'pu-trafo'},
   ];
-  accs.forEach((a,i)=>rows.push({tag:a.kit?'Rádio+':a.f==='Manual'?'Manual':'Equip.',tc:'tc',rc:'rc',d:a.d,q:a.q,p:a.p,edit:true,id:'qa'+i,ri:i,rm:true}));
+  accs.forEach((a,i)=>rows.push({tag:a.kit?'Rádio+':a.f==='Manual'?'Manual':'Equip.',tc:'tc',rc:'rc',d:a.d,q:a.q,p:a.p,editq:true,id:'qa'+i,pid:'pu-acc'+i,ri:i,rm:true}));
   kb.innerHTML=rows.map(r=>{
-    const sub=r.q*r.p*f;
-    const qcell=r.edit
-      ?`<input type="number" id="${r.id}" min="0" value="${r.q}" oninput="${r.rm?'accs['+r.ri+'].q=parseInt(this.value)||0;':''}renderKit()">`
+    // Preço: tenta pegar valor editado pelo usuário, senão usa o do catálogo
+    const puEl=document.getElementById(r.pid);
+    const pAtual=puEl?parseFloat(puEl.value)||r.p:r.p;
+    const sub=r.q*pAtual*f;
+    const qcell=r.editq
+      ?`<input type="number" id="${r.id}" min="0" value="${r.q}" style="width:55px" oninput="${r.rm?'accs['+r.ri+'].q=parseInt(this.value)||0;':''}renderKit()">`
       :r.q;
+    // Campo de preço unitário — sempre editável, pré-preenchido do catálogo
+    const pcell=`<input type="number" id="${r.pid}" min="0" step="0.01" value="${pAtual.toFixed(2)}" style="width:70px" oninput="renderKit()">`;
     const rmbtn=r.rm?`<button class="btnrm" onclick="rmAcc(${r.ri})">×</button>`:'';
-    return`<tr class="${r.rc}"><td><span class="ktag ${r.tc}">${r.tag}</span></td><td>${r.d}</td><td style="text-align:right">${qcell}</td><td style="text-align:right">R$ ${brl(r.p*f)}</td><td style="text-align:right">${qtdR?'R$ '+brl(sub):'—'}</td><td>${rmbtn}</td></tr>`;
+    return`<tr class="${r.rc}"><td><span class="ktag ${r.tc}">${r.tag}</span></td><td>${r.d}</td><td style="text-align:right">${qcell}</td><td style="text-align:right">${pcell}</td><td style="text-align:right">${qtdR?'R$ '+brl(sub):'—'}</td><td>${rmbtn}</td></tr>`;
   }).join('');
-  const tot=rows.reduce((s,r)=>s+r.q*r.p*f,0);
+  const tot=rows.reduce((s,r)=>{const puEl=document.getElementById(r.pid);const p=puEl?parseFloat(puEl.value)||r.p:r.p;return s+r.q*p*f;},0);
   const pl=$('prazo').selectedOptions[0].text;
   kf.innerHTML=`<tr class="rtot"><td colspan="4" style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em">Total / mês — ${pl}</td><td style="text-align:right;font-size:14px">R$ ${qtdR?brl(tot):'—'}</td><td></td></tr>`;
 }
@@ -655,13 +670,18 @@ function genEmail(){
   const f=1-dc;
   const pl=$('prazo').selectedOptions[0].text;
   const qtdB=parseInt($('qtd-bat')?.value)||qtdR;
-  const fil=$('filial').textContent;
+  const fil=$('filial').value||'(filial não selecionada)';
+  // Lê preços editados pelo usuário nos inputs da tabela
+  const puRadio=parseFloat($('pu-radio')?.value)||rAtual.p;
+  const puBat  =parseFloat($('pu-bat')?.value)||(bAtual?bAtual.p:0);
+  const puBase =parseFloat($('pu-base')?.value)||PB;
+  const puTrafo=parseFloat($('pu-trafo')?.value)||PT;
   const itens=[
-    {d:rAtual.d, q:qtdR, p:rAtual.p},
-    ...(bAtual?[{d:bAtual.d,q:qtdB,p:bAtual.p}]:[]),
-    {d:'Base carregador',q:qtdR,p:PB},
-    {d:'Trafo bivolt',q:qtdR,p:PT},
-    ...accs.map((a,i)=>({d:a.d,q:parseInt($('qa'+i)?.value)||a.q,p:a.p}))
+    {d:rAtual.d, q:qtdR, p:puRadio},
+    ...(bAtual?[{d:bAtual.d,q:qtdB,p:puBat}]:[]),
+    {d:'Base carregador',q:qtdR,p:puBase},
+    {d:'Trafo bivolt',q:qtdR,p:puTrafo},
+    ...accs.map((a,i)=>({d:a.d,q:parseInt($('qa'+i)?.value)||a.q,p:parseFloat($('pu-acc'+i)?.value)||a.p}))
   ];
   const linhas=itens.map(it=>`${it.q}x ${it.d} — R$ ${brl(it.p*f)}/un — R$ ${brl(it.q*it.p*f)}/mês`).join('\n');
   const tot=itens.reduce((s,it)=>s+it.q*it.p*f,0);
@@ -697,6 +717,7 @@ function clearAll(){
   $('cricom').value='';
   $('cnpj-info').className='cnpj-info s2';
   $('cnpj-spin').textContent='';
+  $('filial').value='';
   $('m-subj').textContent='—';
   const p=$('prev');
   p.className='empty';
