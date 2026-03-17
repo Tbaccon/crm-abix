@@ -223,6 +223,31 @@ const EC = 'jorge.eduardo'        + '@' + 'abix.com.br';
 document.getElementById('m-dest').textContent = ED;
 document.getElementById('m-cc').textContent   = EC;
 
+// LÊ PARÂMETROS DA URL — preenchidos pela extensão do Edge/Chrome
+// URLSearchParams faz o parsing automático de ?nome=X&cel=Y&email=Z
+(function() {
+  const p = new URLSearchParams(window.location.search);
+  if (!p.has('nome') && !p.has('email') && !p.has('cel')) return;
+
+  // Aguarda o DOM estar pronto para preencher os campos
+  function preencherDaExtensao() {
+    if (p.get('nome'))  $('contato').value  = decodeURIComponent(p.get('nome'));
+    if (p.get('email')) $('ecli').value     = decodeURIComponent(p.get('email'));
+    // Prefere celular, mas usa telefone comercial se não tiver celular
+    const fone = p.get('cel') || p.get('tel') || '';
+    if (fone) $('tel').value = decodeURIComponent(fone);
+    // Preenche a URL do Dynamix se veio da extensão
+    if (p.get('url'))  $('url').value = decodeURIComponent(p.get('url'));
+
+    // Avisa o usuário que os campos foram preenchidos
+    toast('✓ Dados importados do Dynamics 365');
+  }
+
+  // Pequeno delay para garantir que o DOM está pronto
+  setTimeout(preencherDaExtensao, 300);
+})();
+
+
 // PREÇOS FIXOS — muda aqui, reflete em todo o código
 const PB = 2;  // base carregador
 const PT = 3;  // trafo bivolt
