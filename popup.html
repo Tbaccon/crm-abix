@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    width: 280px;
+    padding: 16px;
+    font-family: 'Segoe UI', sans-serif;
+    background: #0e0f11;
+    color: #e8eaf0;
+    margin: 0;
+  }
+  .logo {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: #6b7080;
+    margin-bottom: 12px;
+  }
+  .logo span { color: #e8ff47; }
+
+  #status {
+    font-size: 12px;
+    color: #6b7080;
+    margin-bottom: 14px;
+    min-height: 16px;
+    font-family: 'Courier New', monospace;
+  }
+  #status.ok  { color: #47ffb2; }
+  #status.err { color: #ff6b6b; }
+
+  .preview {
+    background: #16181c;
+    border: 1px solid #2a2d35;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    color: #e8eaf0;
+    margin-bottom: 14px;
+    display: none;
+    line-height: 1.7;
+  }
+  .preview.show { display: block; }
+  .preview .lbl { color: #6b7080; }
+
+  button {
+    width: 100%;
+    padding: 11px;
+    background: #e8ff47;
+    color: #0e0f11;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  button:hover { background: #f5ff6e; }
+  button:disabled { opacity: .3; cursor: not-allowed; }
+
+  .hint {
+    font-size: 10px;
+    color: #6b7080;
+    margin-top: 10px;
+    text-align: center;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="logo">Abix <span>·</span> CRM Import</div>
+
+<div id="status">Lendo a página do Dynamics...</div>
+
+<div class="preview" id="preview">
+  <div><span class="lbl">Nome: </span><span id="p-nome">—</span></div>
+  <div><span class="lbl">Celular: </span><span id="p-cel">—</span></div>
+  <div><span class="lbl">Tel. Comercial: </span><span id="p-tel">—</span></div>
+  <div><span class="lbl">Email: </span><span id="p-email">—</span></div>
+</div>
+
+<button id="btn" disabled>⚡ Abrir Formulário CRM</button>
+
+<div class="hint">
+  Abra um negócio no Dynamics 365<br>antes de usar esta extensão.
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

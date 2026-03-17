@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Abix CRM \u2014 Importar do Dynamics",
+  "version": "1.0",
+  "description": "L\u00ea os dados de contato do Dynamics 365 e abre o formul\u00e1rio de abertura de CRM j\u00e1 preenchido.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.crm.dynamics.com/*",
+    "https://*.crm2.dynamics.com/*",
+    "https://*.dynamics.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Importar para CRM Abix"
+  }
+}
