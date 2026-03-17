@@ -25,6 +25,8 @@ header{border-bottom:1px solid var(--border);padding:20px 36px;display:flex;alig
 label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 input[type=text],input[type=number],select{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;width:100%;outline:none;transition:border-color .15s,box-shadow .15s}
 input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,255,71,.07)}
+#filial{border-color:var(--border)!important;box-shadow:none!important;outline:none!important}
+#filial:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(232,255,71,.07)!important}
 select option{background:#1e2028}
 .sw{position:relative;overflow:visible}
 .sw input{padding-right:32px}
@@ -132,7 +134,7 @@ select option{background:#1e2028}
           </select>
         </div>
         <div class="fld s2"><label>Filial Responsável</label>
-          <select id="filial">
+          <select id="filial" autocomplete="off">
             <option value="">— selecione ou será preenchido pelo CNPJ —</option>
             <option value="Matriz">Matriz (PR)</option>
             <option value="Itajaí">Itajaí (SC)</option>
