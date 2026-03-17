@@ -154,20 +154,47 @@ select option{background:#1e2028}
         <tbody id="kb"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px;font-family:'DM Mono',monospace;font-size:12px">Selecione um rádio para montar o kit</td></tr></tbody>
         <tfoot id="kf"></tfoot>
       </table>
-      <button class="btnacc" id="btnacc" disabled onclick="toggleAcc()">+ Adicionar Acessório</button>
+      <div class="g2" style="margin-top:10px">
+        <div class="fld s2"><label>Local de Uso</label><input type="text" id="local" placeholder="Ex: Planta industrial — Três Lagoas/MS"></div>
+        <div class="fld"><label>Cricom</label>
+          <select id="cricom">
+            <option value="">Selecione...</option>
+            <option value="Sim">Sim</option>
+            <option value="Não">Não</option>
+          </select>
+        </div>
+      </div>
+      <button class="btnacc" id="btnacc" disabled onclick="toggleEq()">+ Adicionar Equipamento</button>
       <div class="accarea" id="accarea">
-        <label>Buscar Acessório</label>
+        <label style="margin-bottom:8px;display:block">Buscar Equipamento</label>
         <div class="sw" id="wa">
-          <input type="text" id="buscaA" placeholder="Ex: fone de ouvido..." autocomplete="off"
+          <input type="text" id="buscaA" placeholder="Rádio, acessório ou descrição livre..." autocomplete="off"
             oninput="filterA()" onkeydown="navK(event,'ddA',listA,selA)">
           <button class="sclear" onclick="clearA()">×</button>
           <div class="dd" id="ddA"></div>
+        </div>
+        <!-- Campos manuais: aparecem quando o item não está no catálogo -->
+        <div id="eq-manual" style="display:none;margin-top:10px">
+          <div style="font-size:10px;color:var(--warn);letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:8px">
+            Item não encontrado no catálogo — preencha manualmente
+          </div>
+          <div class="g2">
+            <div class="fld s2"><label>Descrição</label><input type="text" id="eq-desc" placeholder="Ex: Fone de ouvido especial"></div>
+            <div class="fld"><label>Quantidade</label><input type="number" id="eq-qtd" min="1" placeholder="10"></div>
+            <div class="fld"><label>Preço unit./mês (R$)</label><input type="number" id="eq-preco" min="0" step="0.01" placeholder="0,00"></div>
+          </div>
+          <button onclick="addManual()" style="margin-top:8px;width:100%;padding:9px;background:var(--warn);color:#0e0f11;border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">
+            Adicionar ao Kit
+          </button>
         </div>
       </div>
     </div>
     <div class="sec">
       <div class="slabel">Dynamix</div>
-      <div class="fld"><label>URL do Negócio</label><input type="text" id="url" placeholder="https://dynamix.com.br/clientes/4821"></div>
+      <div class="g2">
+        <div class="fld s2"><label>URL do Negócio</label><input type="text" id="url" placeholder="https://dynamix.com.br/clientes/4821"></div>
+
+      </div>
     </div>
     <button class="btngen" onclick="genEmail()">⚡ Gerar Email</button>
   </div>
@@ -477,23 +504,56 @@ $('ddR').addEventListener('mousedown',e=>{
   selR(parseInt(it.dataset.i));
 });
 
-// BUSCA ACESSÓRIO
+// BUSCA EQUIPAMENTO
+// O catálogo agora inclui tanto rádios quanto outros itens
+// Rádios identificados pelo campo .b (tem bateria associada)
 function filterA(){
   const q=nor($('buscaA').value);
+  $('eq-manual').style.display='none'; // esconde manual enquanto digita
   if(!q){closeDD('ddA');return;}
-  listA=OUTROS.filter(x=>nor(x.d).includes(q));
+  // Busca em TODO o catálogo — rádios e outros
+  listA=CAT.filter(x=>nor(x.d).includes(q));
   renderDD('ddA',listA);
+  // Se não encontrou nada, sugere entrada manual
+  if(!listA.length) $('eq-manual').style.display='block';
 }
-function clearA(){$('buscaA').value='';listA=[];closeDD('ddA');}
+function clearA(){
+  $('buscaA').value='';listA=[];closeDD('ddA');
+  $('eq-manual').style.display='none';
+  $('eq-desc').value='';$('eq-qtd').value='';$('eq-preco').value='';
+}
 function selA(i){
   const x=listA[i];if(!x)return;
   const qtdR=parseInt($('qtdR').value)||1;
-  accs.push({d:x.d,p:x.p,f:x.f,q:qtdR});
+
+  // Se o item tem campo .b, é um rádio — monta kit completo
+  if(x.b){
+    const sig=nor(x.d.split(' ').pop());
+    const fab=nor(x.f);
+    const bat=CAT.find(b=>nor(b.d).includes('bateria')&&nor(b.f)===fab&&nor(b.d).includes(sig))
+             ||CAT.find(b=>nor(b.d).includes('bateria')&&nor(b.f)===fab)||null;
+    // Adiciona rádio
+    accs.push({d:x.d,p:x.p,f:x.f,q:qtdR,kit:true});
+    // Adiciona bateria se encontrada
+    if(bat) accs.push({d:bat.d,p:bat.p,f:bat.f,q:qtdR});
+    // Adiciona base e trafo fixos
+    accs.push({d:'Base carregador',p:PB,f:'—',q:qtdR});
+    accs.push({d:'Trafo bivolt',p:PT,f:'—',q:qtdR});
+    toast('✓ Kit '+x.d+' adicionado');
+  } else {
+    // Item comum — adiciona direto
+    accs.push({d:x.d,p:x.p,f:x.f,q:qtdR});
+    toast('✓ '+x.d+' adicionado');
+  }
+
   $('buscaA').value='';closeDD('ddA');
   $('accarea').classList.remove('open');
-  $('cnpj-info').className='cnpj-info s2';
-  $('cnpj-spin').textContent='';
-  renderKit();toast('✓ '+x.d+' adicionado');
+  $('eq-manual').style.display='none';
+  $('eq-desc').value='';
+  $('eq-qtd').value='';
+  $('eq-preco').value='';
+  $('eq-manual').style.display='none';
+  renderKit();
 }
 $('ddA').addEventListener('mousedown',e=>{
   const it=e.target.closest('.ddi');
@@ -501,7 +561,25 @@ $('ddA').addEventListener('mousedown',e=>{
   e.preventDefault();
   selA(parseInt(it.dataset.i));
 });
-function toggleAcc(){
+
+// Entrada manual — item não encontrado no catálogo
+function addManual(){
+  const desc=$('eq-desc').value.trim();
+  const qtd=parseInt($('eq-qtd').value)||0;
+  const preco=parseFloat($('eq-preco').value)||0;
+  if(!desc||!qtd||!preco){toast('⚠ Preencha descrição, quantidade e preço.','e');return;}
+  accs.push({d:desc,p:preco,f:'Manual',q:qtd});
+  clearA();
+  $('accarea').classList.remove('open');
+  $('eq-manual').style.display='none';
+  $('eq-desc').value='';
+  $('eq-qtd').value='';
+  $('eq-preco').value='';
+  renderKit();
+  toast('✓ '+desc+' adicionado');
+}
+
+function toggleEq(){
   $('accarea').classList.toggle('open');
   if($('accarea').classList.contains('open'))setTimeout(()=>$('buscaA').focus(),50);
 }
@@ -525,7 +603,7 @@ function renderKit(){
     {tag:'Base',  tc:'ta', rc:'ra', d:'Base carregador', q:qtdR, p:PB, edit:false, id:null},
     {tag:'Trafo', tc:'ta', rc:'ra', d:'Trafo bivolt',    q:qtdR, p:PT, edit:false, id:null},
   ];
-  accs.forEach((a,i)=>rows.push({tag:'Acess.',tc:'tc',rc:'rc',d:a.d,q:a.q,p:a.p,edit:true,id:'qa'+i,ri:i,rm:true}));
+  accs.forEach((a,i)=>rows.push({tag:a.kit?'Rádio+':a.f==='Manual'?'Manual':'Equip.',tc:'tc',rc:'rc',d:a.d,q:a.q,p:a.p,edit:true,id:'qa'+i,ri:i,rm:true}));
   kb.innerHTML=rows.map(r=>{
     const sub=r.q*r.p*f;
     const qcell=r.edit
@@ -543,7 +621,8 @@ function renderKit(){
 function genEmail(){
   const cli=val('cliente'),cnpj=val('cnpj'),cont=val('contato');
   const ecli=val('ecli'),tel=val('tel'),url=val('url');
-  if(!cli||!cnpj||!cont||!url){toast('⚠ Preencha: empresa, CNPJ, contato e URL.','e');return;}
+  const local=val('local'),cricom=$('cricom').value;
+  if(!cli||!cnpj||!cont||!url||!local||!cricom){toast('⚠ Preencha todos os campos obrigatórios.','e');return;}
   if(!rAtual){toast('⚠ Selecione um rádio.','e');return;}
   const qtdR=parseInt($('qtdR').value)||0;
   if(!qtdR){toast('⚠ Informe a quantidade de rádios.','e');return;}
@@ -559,9 +638,9 @@ function genEmail(){
     {d:'Trafo bivolt',q:qtdR,p:PT},
     ...accs.map((a,i)=>({d:a.d,q:parseInt($('qa'+i)?.value)||a.q,p:a.p}))
   ];
-  const linhas=itens.map(it=>`${it.q}x ${it.d} — R$ ${brl(it.q*it.p*f)}/mês`).join('\n');
+  const linhas=itens.map(it=>`${it.q}x ${it.d} — R$ ${brl(it.p*f)}/un — R$ ${brl(it.q*it.p*f)}/mês`).join('\n');
   const tot=itens.reduce((s,it)=>s+it.q*it.p*f,0);
-  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\nTotal: R$ ${brl(tot)}/mês (${pl})\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
+  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\nTotal: R$ ${brl(tot)}/mês (${pl})\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nLocal de uso: ${local}\nCricom: ${cricom}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
   $('m-subj').textContent=`Aprovação e qualificação - ${cli}`;
   const p=$('prev');
   p.className='';p.textContent=corpo;p.dataset.c=corpo;
@@ -585,6 +664,12 @@ function clearAll(){
   rAtual=null;bAtual=null;accs=[];listR=[];listA=[];
   closeDD('ddR');closeDD('ddA');updFilial();renderKit();
   $('accarea').classList.remove('open');
+  $('eq-manual').style.display='none';
+  $('eq-desc').value='';
+  $('eq-qtd').value='';
+  $('eq-preco').value='';
+  $('local').value='';
+  $('cricom').value='';
   $('cnpj-info').className='cnpj-info s2';
   $('cnpj-spin').textContent='';
   $('m-subj').textContent='—';
