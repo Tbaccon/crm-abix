@@ -26,6 +26,17 @@ label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:upperca
 input[type=text],input[type=number],select{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;width:100%;outline:none;transition:border-color .15s,box-shadow .15s}
 input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,255,71,.07)}
 select option{background:#1e2028}
+.evento-toggle{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;cursor:pointer;user-select:none;transition:all .15s}
+.evento-toggle.ativo{background:rgba(255,107,107,.07);border-color:rgba(255,107,107,.3)}
+.evt-dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .15s}
+.evento-toggle.ativo .evt-dot{background:var(--err)}
+.evt-label{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);flex:1}
+.evento-toggle.ativo .evt-label{color:var(--err)}
+.evt-badge{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.evento-toggle.ativo .evt-badge{background:rgba(255,107,107,.15);border-color:rgba(255,107,107,.3);color:var(--err)}
+.evento-datas{display:none;margin-bottom:10px}
+.evento-datas.show{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
 .filial-wrap{position:relative;width:100%}
 .filial-btn{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;padding:9px 32px 9px 12px;text-align:left;cursor:pointer;transition:border-color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;outline:none;appearance:none;position:relative}
 .filial-btn::after{content:'▾';position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
@@ -170,6 +181,17 @@ select option{background:#1e2028}
     </div>
     <div class="sec">
       <div class="slabel">Kit de Locação</div>
+      <!-- Toggle Evento — padrão Não, pode ser alterado para Sim -->
+      <div class="evento-toggle" id="evt-toggle" onclick="toggleEvento()">
+        <div class="evt-dot"></div>
+        <span class="evt-label">Locação eventual (evento)?</span>
+        <span class="evt-badge" id="evt-badge">NÃO</span>
+      </div>
+      <!-- Datas — só aparecem quando Evento = Sim -->
+      <div class="evento-datas" id="evt-datas">
+        <div class="fld"><label>Data Inicial</label><input type="date" id="evt-ini"></div>
+        <div class="fld"><label>Data Final</label><input type="date" id="evt-fim"></div>
+      </div>
       <div class="g2" style="margin-bottom:10px">
         <div class="fld s2"><label>Rádio Principal</label>
           <div class="sw" id="wr">
@@ -452,6 +474,21 @@ document.addEventListener('click', e => {
   }
 });
 
+
+// EVENTO — locação eventual multiplica preços por 1,5 (preço cheio de tabela)
+let isEvento = false;
+
+function toggleEvento(){
+  isEvento = !isEvento;
+  const tog  = $('evt-toggle');
+  const badge = $('evt-badge');
+  const datas = $('evt-datas');
+  tog.classList.toggle('ativo', isEvento);
+  badge.textContent = isEvento ? 'SIM' : 'NÃO';
+  datas.classList.toggle('show', isEvento);
+  // Recalcula a tabela com o novo fator
+  renderKit();
+}
 // FILIAL
 const FIL={PR:'Matriz',SC:'Itajaí',SP:'São Paulo',MG:'Uberlândia',RJ:'Niterói',ES:'Niterói',BA:'Lauro de Freitas'};
 function updFilial(){
@@ -708,7 +745,8 @@ function renderKit(){
   btn.disabled=false;
   const qtdR=parseInt($('qtdR').value)||0;
   const dc=parseFloat($('prazo').value);
-  const f=1-dc;
+  // Evento: preço cheio × 1,5, ignora desconto por prazo
+  const f=isEvento ? 1.5 : (1-dc);
   const rows=[
     {tag:'Rádio', tc:'tr', rc:'rr', d:rAtual.d,   q:qtdR, p:rAtual.p, editq:false, id:null,      pid:'pu-radio'},
     {tag:'Bat.',  tc:'tb', rc:'rb', d:bAtual?bAtual.d:'—', q:qtdR,  p:bAtual?bAtual.p:0, editq:true, id:'qtd-bat', pid:'pu-bat'},
@@ -763,7 +801,7 @@ function atualizarLinha(inputEl, tipo, accIdx){
 function recalcTotal(f){
   if(f===undefined){
     const dc=parseFloat($('prazo').value);
-    f=1-dc;
+    f=isEvento ? 1.5 : (1-dc);
   }
   let tot=0;
   document.querySelectorAll('#kb tr').forEach(tr=>{
@@ -783,7 +821,8 @@ function genEmail(){
   const cli=val('cliente'),cnpj=val('cnpj'),cont=val('contato');
   const ecli=val('ecli'),tel=val('tel'),url=val('url');
   const local=val('local'),cricom=$('cricom').value,freq=$('freq').value;
-  if(!cli||!cnpj||!cont||!url||!local||!cricom||!freq){toast('⚠ Preencha todos os campos obrigatórios.','e');return;}
+  const evtIni=val('evt-ini'),evtFim=val('evt-fim');
+  if(!cli||!cnpj||!cont||!url||!local||!cricom||!freq||(isEvento&&(!evtIni||!evtFim))){toast('⚠ Preencha todos os campos obrigatórios.','e');return;}
   if(!rAtual){toast('⚠ Selecione um rádio.','e');return;}
   const qtdR=parseInt($('qtdR').value)||0;
   if(!qtdR){toast('⚠ Informe a quantidade de rádios.','e');return;}
@@ -806,7 +845,8 @@ function genEmail(){
   ];
   const linhas=itens.map(it=>`${it.q}x ${it.d} — R$ ${brl(it.p*f)}/un — R$ ${brl(it.q*it.p*f)}/mês`).join('\n');
   const tot=itens.reduce((s,it)=>s+it.q*it.p*f,0);
-  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\nTotal: R$ ${brl(tot)}/mês (${pl})\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nLocal de uso: ${local}\nFrequência: ${freq}\nCricom: ${cricom}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
+  const evtBloco=isEvento?`\nEvento: Sim (${evtIni} a ${evtFim}) — Preço de tabela × 1,5`:'\nEvento: Não';
+  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\nTotal: R$ ${brl(tot)}/mês (${pl})\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nLocal de uso: ${local}\nFrequência: ${freq}${evtBloco}\nCricom: ${cricom}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
   $('m-subj').textContent=`Aprovação e qualificação - ${cli}`;
   const p=$('prev');
   p.className='';p.textContent=corpo;p.dataset.c=corpo;
@@ -837,6 +877,7 @@ function clearAll(){
   $('local').value='';
   $('cricom').value='';
   $('freq').value='';
+  if(isEvento) toggleEvento();
   $('cnpj-info').className='cnpj-info s2';
   $('cnpj-spin').textContent='';
   setFilial('','');
