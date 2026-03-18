@@ -221,7 +221,7 @@ select option{background:#1e2028}
       <div class="g2" style="margin-top:10px">
         <div class="fld s2"><label>Local de Uso</label><input type="text" id="local" placeholder="Ex: Planta industrial — Três Lagoas/MS"></div>
         <div class="fld"><label>Frequência</label>
-          <select id="freq">
+          <select id="freq" onchange="updCricom()">
             <option value="">Selecione...</option>
             <option value="VHF">VHF</option>
             <option value="UHF1">UHF1</option>
@@ -488,6 +488,14 @@ function toggleEvento(){
   datas.classList.toggle('show', isEvento);
   // Recalcula a tabela com o novo fator
   renderKit();
+}
+
+// CRICOM — preenchido automaticamente pela frequência
+// NENHUMA → Não | qualquer outra → Sim
+function updCricom(){
+  const freq = $('freq').value;
+  if (!freq) return; // sem seleção, não força nada
+  $('cricom').value = freq === 'NENHUMA' ? 'Não' : 'Sim';
 }
 // FILIAL
 const FIL={PR:'Matriz',SC:'Itajaí',SP:'São Paulo',MG:'Uberlândia',RJ:'Niterói',ES:'Niterói',BA:'Lauro de Freitas'};
