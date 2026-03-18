@@ -198,6 +198,16 @@ select option{background:#1e2028}
       </table>
       <div class="g2" style="margin-top:10px">
         <div class="fld s2"><label>Local de Uso</label><input type="text" id="local" placeholder="Ex: Planta industrial — Três Lagoas/MS"></div>
+        <div class="fld"><label>Frequência</label>
+          <select id="freq">
+            <option value="">Selecione...</option>
+            <option value="VHF">VHF</option>
+            <option value="UHF1">UHF1</option>
+            <option value="UHF3">UHF3</option>
+            <option value="OUTRAS">OUTRAS</option>
+            <option value="NENHUMA">NENHUMA</option>
+          </select>
+        </div>
         <div class="fld"><label>Cricom</label>
           <select id="cricom">
             <option value="">Selecione...</option>
@@ -684,6 +694,11 @@ function toggleEq(){
 function rmAcc(i){accs.splice(i,1);renderKit();}
 
 // KIT
+// IMPORTANTE: renderKit() só é chamado quando a estrutura muda
+// (novo rádio, prazo diferente, adicionar/remover item).
+// recalcTotal() é chamado nos inputs de qtd e preço — só atualiza
+// os subtotais e o total SEM reconstruir o DOM, preservando o foco.
+
 function renderKit(){
   const kb=$('kb'),kf=$('kf'),btn=$('btnacc');
   if(!rAtual){
@@ -692,40 +707,83 @@ function renderKit(){
   }
   btn.disabled=false;
   const qtdR=parseInt($('qtdR').value)||0;
-  const qtdB=parseInt($('qtd-bat')?.value)||qtdR;
   const dc=parseFloat($('prazo').value);
   const f=1-dc;
   const rows=[
     {tag:'Rádio', tc:'tr', rc:'rr', d:rAtual.d,   q:qtdR, p:rAtual.p, editq:false, id:null,      pid:'pu-radio'},
-    {tag:'Bat.',  tc:'tb', rc:'rb', d:bAtual?bAtual.d:'—', q:qtdB, p:bAtual?bAtual.p:0, editq:true, id:'qtd-bat', pid:'pu-bat'},
+    {tag:'Bat.',  tc:'tb', rc:'rb', d:bAtual?bAtual.d:'—', q:qtdR,  p:bAtual?bAtual.p:0, editq:true, id:'qtd-bat', pid:'pu-bat'},
     {tag:'Base',  tc:'ta', rc:'ra', d:'Base carregador', q:qtdR, p:PB, editq:false, id:null,      pid:'pu-base'},
     {tag:'Trafo', tc:'ta', rc:'ra', d:'Trafo bivolt',    q:qtdR, p:PT, editq:false, id:null,      pid:'pu-trafo'},
   ];
-  accs.forEach((a,i)=>rows.push({tag:a.kit?'Rádio+':a.f==='Manual'?'Manual':'Equip.',tc:'tc',rc:'rc',d:a.d,q:a.q,p:a.p,editq:true,id:'qa'+i,pid:'pu-acc'+i,ri:i,rm:true}));
-  kb.innerHTML=rows.map(r=>{
-    // Preço: tenta pegar valor editado pelo usuário, senão usa o do catálogo
-    const puEl=document.getElementById(r.pid);
-    const pAtual=puEl?parseFloat(puEl.value)||r.p:r.p;
-    const sub=r.q*pAtual*f;
+  accs.forEach((a,i)=>rows.push({
+    tag:a.kit?'Rádio+':a.f==='Manual'?'Manual':'Equip.',
+    tc:'tc',rc:'rc',d:a.d,q:a.q,p:a.p,editq:true,
+    id:'qa'+i,pid:'pu-acc'+i,ri:i,rm:true
+  }));
+
+  kb.innerHTML=rows.map((r,idx)=>{
+    const sub=r.q*r.p*f;
     const qcell=r.editq
-      ?`<input type="number" id="${r.id}" min="0" value="${r.q}" style="width:55px" oninput="${r.rm?'accs['+r.ri+'].q=parseInt(this.value)||0;':''}renderKit()">`
+      ?`<input type="number" id="${r.id}" min="0" value="${r.q}" style="width:55px" oninput="atualizarLinha(this,'q',${r.rm?r.ri:-1})">`
       :r.q;
-    // Campo de preço unitário — sempre editável, pré-preenchido do catálogo
-    const pcell=`<input type="number" id="${r.pid}" min="0" step="0.01" value="${pAtual.toFixed(2)}" style="width:70px" oninput="renderKit()">`;
+    const pcell=`<input type="number" id="${r.pid}" min="0" step="0.01" value="${r.p.toFixed(2)}" style="width:70px" oninput="atualizarLinha(this,'p',-1)">`;
     const rmbtn=r.rm?`<button class="btnrm" onclick="rmAcc(${r.ri})">×</button>`:'';
-    return`<tr class="${r.rc}"><td><span class="ktag ${r.tc}">${r.tag}</span></td><td>${r.d}</td><td style="text-align:right">${qcell}</td><td style="text-align:right">${pcell}</td><td style="text-align:right">${qtdR?'R$ '+brl(sub):'—'}</td><td>${rmbtn}</td></tr>`;
+    return`<tr class="${r.rc}" id="row-${idx}">
+      <td><span class="ktag ${r.tc}">${r.tag}</span></td>
+      <td>${r.d}</td>
+      <td style="text-align:right">${qcell}</td>
+      <td style="text-align:right">${pcell}</td>
+      <td style="text-align:right" id="sub-${idx}">${qtdR?'R$ '+brl(sub):'—'}</td>
+      <td>${rmbtn}</td>
+    </tr>`;
   }).join('');
-  const tot=rows.reduce((s,r)=>{const puEl=document.getElementById(r.pid);const p=puEl?parseFloat(puEl.value)||r.p:r.p;return s+r.q*p*f;},0);
+
+  recalcTotal(f);
+}
+
+// Atualiza qtd/preço e recalcula subtotal da linha — SEM recriar o DOM
+function atualizarLinha(inputEl, tipo, accIdx){
+  if(tipo==='q' && accIdx>=0) accs[accIdx].q = parseInt(inputEl.value)||0;
+  const dc=parseFloat($('prazo').value);
+  const f=1-dc;
+  // Encontra a linha pelo tr pai
+  const tr=inputEl.closest('tr');
+  if(tr){
+    const qtdInput = tr.querySelector('td:nth-child(3) input') || tr.querySelector('td:nth-child(3)');
+    const puInput  = tr.querySelector('td:nth-child(4) input');
+    const subCell  = tr.querySelector('td:nth-child(5)');
+    const q = qtdInput ? (parseInt(qtdInput.value)||parseInt(qtdInput.textContent)||0) : 0;
+    const p = puInput  ? (parseFloat(puInput.value)||0) : 0;
+    if(subCell) subCell.textContent = q && p ? 'R$ '+brl(q*p*f) : '—';
+  }
+  recalcTotal(f);
+}
+
+// Recalcula só o total — lê os inputs atuais da tabela
+function recalcTotal(f){
+  if(f===undefined){
+    const dc=parseFloat($('prazo').value);
+    f=1-dc;
+  }
+  let tot=0;
+  document.querySelectorAll('#kb tr').forEach(tr=>{
+    const qtdEl = tr.querySelector('td:nth-child(3) input');
+    const puEl  = tr.querySelector('td:nth-child(4) input');
+    const q = qtdEl ? (parseInt(qtdEl.value)||0) : parseInt(tr.querySelector('td:nth-child(3)')?.textContent||'0')||0;
+    const p = puEl  ? (parseFloat(puEl.value)||0) : 0;
+    tot += q*p*f;
+  });
   const pl=$('prazo').selectedOptions[0].text;
-  kf.innerHTML=`<tr class="rtot"><td colspan="4" style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em">Total / mês — ${pl}</td><td style="text-align:right;font-size:14px">R$ ${qtdR?brl(tot):'—'}</td><td></td></tr>`;
+  const qtdR=parseInt($('qtdR').value)||0;
+  $('kf').innerHTML=`<tr class="rtot"><td colspan="4" style="text-align:right;font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em">Total / mês — ${pl}</td><td style="text-align:right;font-size:14px">R$ ${qtdR?brl(tot):'—'}</td><td></td></tr>`;
 }
 
 // GERAR EMAIL
 function genEmail(){
   const cli=val('cliente'),cnpj=val('cnpj'),cont=val('contato');
   const ecli=val('ecli'),tel=val('tel'),url=val('url');
-  const local=val('local'),cricom=$('cricom').value;
-  if(!cli||!cnpj||!cont||!url||!local||!cricom){toast('⚠ Preencha todos os campos obrigatórios.','e');return;}
+  const local=val('local'),cricom=$('cricom').value,freq=$('freq').value;
+  if(!cli||!cnpj||!cont||!url||!local||!cricom||!freq){toast('⚠ Preencha todos os campos obrigatórios.','e');return;}
   if(!rAtual){toast('⚠ Selecione um rádio.','e');return;}
   const qtdR=parseInt($('qtdR').value)||0;
   if(!qtdR){toast('⚠ Informe a quantidade de rádios.','e');return;}
@@ -748,7 +806,7 @@ function genEmail(){
   ];
   const linhas=itens.map(it=>`${it.q}x ${it.d} — R$ ${brl(it.p*f)}/un — R$ ${brl(it.q*it.p*f)}/mês`).join('\n');
   const tot=itens.reduce((s,it)=>s+it.q*it.p*f,0);
-  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\nTotal: R$ ${brl(tot)}/mês (${pl})\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nLocal de uso: ${local}\nCricom: ${cricom}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
+  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\nTotal: R$ ${brl(tot)}/mês (${pl})\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nLocal de uso: ${local}\nFrequência: ${freq}\nCricom: ${cricom}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
   $('m-subj').textContent=`Aprovação e qualificação - ${cli}`;
   const p=$('prev');
   p.className='';p.textContent=corpo;p.dataset.c=corpo;
@@ -778,6 +836,7 @@ function clearAll(){
   $('eq-preco').value='';
   $('local').value='';
   $('cricom').value='';
+  $('freq').value='';
   $('cnpj-info').className='cnpj-info s2';
   $('cnpj-spin').textContent='';
   setFilial('','');
