@@ -219,7 +219,7 @@ select option{background:#1e2028}
         <tfoot id="kf"></tfoot>
       </table>
       <div class="g2" style="margin-top:10px">
-        <div class="fld s2"><label>Local de Uso</label><input type="text" id="local" placeholder="Ex: Planta industrial — Três Lagoas/MS"></div>
+        <div class="fld s2"><label>Local de Uso</label><input type="text" id="local" placeholder="Ex: Planta industrial — Três Lagoas/MS" oninput="syncPolo(this.value)"></div>
         <div class="fld s2"><label>Polo Econômico</label>
           <div class="sw" id="wp">
             <input type="text" id="busca-polo" placeholder="Digite para buscar ou N/A..." autocomplete="off"
@@ -564,6 +564,13 @@ $('ddP').addEventListener('mousedown', e => {
 
 // Inicializa com N/A visível
 $('busca-polo').placeholder = 'Digite para buscar... (padrão: N/A)';
+
+// Sincroniza local de uso → busca de polo econômico
+function syncPolo(txt){
+  if(!txt){ clearPolo(); return; }
+  $('busca-polo').value = txt;
+  filterPolo();
+}
 // FILIAL
 const FIL={PR:'Matriz',SC:'Itajaí',SP:'São Paulo',MG:'Uberlândia',RJ:'Niterói',ES:'Niterói',BA:'Lauro de Freitas'};
 function updFilial(){
@@ -921,7 +928,8 @@ function genEmail(){
   const linhas=itens.map(it=>`${it.q}x ${it.d} — R$ ${brl(it.p*f)}/un — R$ ${brl(it.q*it.p*f)}/mês`).join('\n');
   const tot=itens.reduce((s,it)=>s+it.q*it.p*f,0);
   const evtBloco=isEvento?`\nEvento: Sim (${evtIni} a ${evtFim}) — Preço de tabela × 1,5`:'\nEvento: Não';
-  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\nTotal: R$ ${brl(tot)}/mês (${pl})\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nLocal de uso: ${local}\nPolo Econômico: ${$("polo").value||"N/A"}\nFrequência: ${freq}${evtBloco}\nCricom: ${cricom}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
+  const totalLinha=isEvento?`Total: R$ ${brl(tot)}/mês (Evento)`:`Total: R$ ${brl(tot)}/mês (${pl})`;
+  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\n${totalLinha}\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nLocal de uso: ${local}\nPolo Econômico: ${$("polo").value||"N/A"}\nFrequência: ${freq}${evtBloco}\nCricom: ${cricom}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
   $('m-subj').textContent=`Aprovação e qualificação - ${cli}`;
   const p=$('prev');
   p.className='';p.textContent=corpo;p.dataset.c=corpo;
