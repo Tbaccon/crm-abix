@@ -220,6 +220,15 @@ select option{background:#1e2028}
       </table>
       <div class="g2" style="margin-top:10px">
         <div class="fld s2"><label>Local de Uso</label><input type="text" id="local" placeholder="Ex: Planta industrial — Três Lagoas/MS"></div>
+        <div class="fld s2"><label>Polo Econômico</label>
+          <div class="sw" id="wp">
+            <input type="text" id="busca-polo" placeholder="Digite para buscar ou N/A..." autocomplete="off"
+              oninput="filterPolo()" onkeydown="navK(event,'ddP',listP,selPolo)">
+            <button class="sclear" onclick="clearPolo()">×</button>
+            <div class="dd" id="ddP"></div>
+          </div>
+          <input type="hidden" id="polo" value="N/A">
+        </div>
         <div class="fld"><label>Frequência</label>
           <select id="freq" onchange="updCricom()">
             <option value="">Selecione...</option>
@@ -499,6 +508,62 @@ function updCricom(){
   if (!freq) return; // sem seleção, não força nada
   $('cricom').value = freq === 'NENHUMA' ? 'Não' : 'Sim';
 }
+
+// POLO ECONÔMICO
+const POLOS = [
+  {c:'000001',d:'GRUPO GPS'},{c:'000002',d:'BRASKEM ALAGOAS'},{c:'000003',d:'BRASKEM TRIUNFO'},
+  {c:'000004',d:'BRASKEM CAMAÇARI'},{c:'000005',d:'BRASKEM PORTO ARATU'},{c:'000006',d:'BRASKEM DUQUE DE CAXIAS'},
+  {c:'000007',d:'BRASKEM ABC'},{c:'000008',d:'BRASKEM CUBATÃO'},{c:'000009',d:'BRASKEM PAULINEA'},
+  {c:'000010',d:'BRASKEM CAMPINAS'},{c:'000011',d:'BASF STO ANTONIO'},{c:'000012',d:'BASF CHEMETALL'},
+  {c:'000013',d:'BASF CAMAÇARI'},{c:'000014',d:'BASF JACAREI'},{c:'000015',d:'BASF GUARATINGUETA'},
+  {c:'000016',d:'BASF MORUMBI'},{c:'000017',d:'BASF DEMARCHI'},{c:'000018',d:'BASF JOBOATÃO'},
+  {c:'000019',d:'BASF SAPUCAIA DO SUL'},{c:'000020',d:'BAYER BELFORD ROXO/RJ'},{c:'000021',d:'BAYER PAULINIA/SP'},
+  {c:'000022',d:'MONSANTO ITAI/SP'},{c:'000023',d:'MONSANTO UBERLÂNDIA/MG'},{c:'000024',d:'MONSANTO CAMPO VERDE/MT'},
+  {c:'000025',d:'MONSANTO PARACATU/MG'},{c:'000026',d:'MONSANTO PETROLINA/PE'},{c:'000027',d:'MONSANTO MORRINHOS/GO'},
+  {c:'000028',d:'MONSANTO PORTO NACIONAL/TO'},{c:'000029',d:'LD CELULOSE'},{c:'000030',d:'LD FLORESTAL'},
+  {c:'000031',d:'UNIGEL CUBATÃO'},{c:'000032',d:'UNIGEL GUARUJA'},{c:'000033',d:'UNIGEL S J DOS CAMPOS'},
+  {c:'000034',d:'PROQUIGEL CAMAÇARI'},{c:'000035',d:'PROQUIGEL LARANJERIAS'},{c:'000036',d:'ARLANXEO CAMPOS ELISEOS'},
+  {c:'000037',d:'ARLANXEO TRIUNFO'},{c:'000038',d:'ARLANXEO DUQUE DE CAXIAS'},{c:'000039',d:'PETROBRAS REDUC'},
+  {c:'000040',d:'PETROBRAS REPAR'},{c:'000041',d:'PETROBRAS REVAP'},{c:'000042',d:'PETROBRAS RNESTE'},
+  {c:'000043',d:'PETROBRAS REGAP'},{c:'000044',d:'PETROBRAS REPLAN'},{c:'000045',d:'PETROBRAS RECAP'},
+  {c:'000046',d:'AERO GRU'},{c:'000046',d:'ARAUCO CELULOSE'},{c:'999999',d:'N/A'},
+];
+
+let listP = [];
+
+function filterPolo(){
+  const q = nor($('busca-polo').value);
+  if(!q){ closeDD('ddP'); return; }
+  listP = POLOS.filter(x => nor(x.d).includes(q) || x.c.includes(q));
+  const dd = $('ddP');
+  dd.innerHTML = listP.length
+    ? listP.map((x,i)=>`<div class="ddi" data-i="${i}"><span class="ddifab">${x.c}</span><span class="ddiname">${x.d}</span></div>`).join('')
+    : '<div class="ddempty">Nenhum polo encontrado</div>';
+  dd.classList.add('open');
+}
+
+function selPolo(i){
+  const x = listP[i]; if(!x) return;
+  $('busca-polo').value = x.d;
+  $('polo').value = x.d;
+  closeDD('ddP');
+}
+
+function clearPolo(){
+  $('busca-polo').value = '';
+  $('polo').value = 'N/A';
+  listP = []; closeDD('ddP');
+}
+
+$('ddP').addEventListener('mousedown', e => {
+  const it = e.target.closest('.ddi');
+  if(!it) return;
+  e.preventDefault();
+  selPolo(parseInt(it.dataset.i));
+});
+
+// Inicializa com N/A visível
+$('busca-polo').placeholder = 'Digite para buscar... (padrão: N/A)';
 // FILIAL
 const FIL={PR:'Matriz',SC:'Itajaí',SP:'São Paulo',MG:'Uberlândia',RJ:'Niterói',ES:'Niterói',BA:'Lauro de Freitas'};
 function updFilial(){
@@ -856,7 +921,7 @@ function genEmail(){
   const linhas=itens.map(it=>`${it.q}x ${it.d} — R$ ${brl(it.p*f)}/un — R$ ${brl(it.q*it.p*f)}/mês`).join('\n');
   const tot=itens.reduce((s,it)=>s+it.q*it.p*f,0);
   const evtBloco=isEvento?`\nEvento: Sim (${evtIni} a ${evtFim}) — Preço de tabela × 1,5`:'\nEvento: Não';
-  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\nTotal: R$ ${brl(tot)}/mês (${pl})\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nLocal de uso: ${local}\nFrequência: ${freq}${evtBloco}\nCricom: ${cricom}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
+  const corpo=`${greet()}, Jorge!\n\nSegue:\n${url}\n\n${linhas}\n\nTotal: R$ ${brl(tot)}/mês (${pl})\n\n${cli} — ${cnpj}\n${cont}\n${ecli} — ${tel}\n\nLocal de uso: ${local}\nPolo Econômico: ${$("polo").value||"N/A"}\nFrequência: ${freq}${evtBloco}\nCricom: ${cricom}\n\nPor qual filial: ${fil}\n\nAtenciosamente,`;
   $('m-subj').textContent=`Aprovação e qualificação - ${cli}`;
   const p=$('prev');
   p.className='';p.textContent=corpo;p.dataset.c=corpo;
@@ -887,6 +952,7 @@ function clearAll(){
   $('local').value='';
   $('cricom').value='';
   $('freq').value='';
+  clearPolo();
   if(isEvento) toggleEvento();
   $('cnpj-info').className='cnpj-info s2';
   $('cnpj-spin').textContent='';
