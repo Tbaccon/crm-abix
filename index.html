@@ -203,7 +203,7 @@ select option{background:#1e2028}
           </div>
         </div>
         <div class="fld"><label>Qtd. Rádios</label><input type="number" id="qtdR" min="1" placeholder="10" oninput="renderKit()"></div>
-        <div class="fld"><label>Prazo</label>
+        <div class="fld" id="prazo-field"><label>Prazo</label>
           <select id="prazo" onchange="renderKit()">
             <option value="0">Auto 30 dias</option>
             <option value="0.04">12 meses (-4%)</option>
@@ -486,6 +486,8 @@ function toggleEvento(){
   tog.classList.toggle('ativo', isEvento);
   badge.textContent = isEvento ? 'SIM' : 'NÃO';
   datas.classList.toggle('show', isEvento);
+  // Esconde prazo quando é evento — período já está nas datas
+  $('prazo-field').style.display = isEvento ? 'none' : '';
   // Recalcula a tabela com o novo fator
   renderKit();
 }
